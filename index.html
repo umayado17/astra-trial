@@ -636,7 +636,7 @@
       document.getElementById('originalTextCard').innerHTML = `
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-3">
           <span class="font-bold text-slate-900 text-sm md:text-base">【原文】朝日新聞ニュース記事</span>
-          <span class="text-xs px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold">客観レベル：9. N1前半相当</span>
+          <span class="text-xs px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold">客観レベル：9. N1前半（上級、ビジネス日本語）相当</span>
         </div>
         <div class="space-y-2 text-sm md:text-base leading-loose text-slate-800">
           ${originalData.sections.map(s => `<p>${s.html}</p>`).join('')}
@@ -713,7 +713,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
               <!-- 左カラム（5/12）：原文 -->
               <div class="lg:col-span-5 p-4 bg-slate-50/60">
-                <div class="text-xs font-bold text-slate-500 mb-2">【原文】（9. N1前半相当）</div>
+                <div class="text-xs font-bold text-slate-500 mb-2">【原文】（9. N1前半（上級、ビジネス日本語）相当）</div>
                 <div class="text-sm md:text-base leading-loose text-slate-800">${origSec.html}</div>
               </div>
               <!-- 中カラム（4/12）：選択レベル変換文 -->
@@ -739,7 +739,7 @@
       const origRow = `
         <tr class="bg-slate-100 font-medium">
           <td class="p-3 border-r border-slate-300 font-bold text-slate-900">
-            【原文】<br><span class="text-[11px] text-emerald-700">9. N1前半相当</span>
+            【原文】<br><span class="text-[11px] text-emerald-700">9. N1前半（上級、ビジネス日本語）相当</span>
           </td>
           ${originalData.matrix.map((cell, i) => `
             <td class="p-3 ${i < 4 ? 'border-r border-slate-300' : ''} leading-relaxed">${cell}</td>
@@ -768,7 +768,7 @@
       const origCard = `
         <div class="bg-slate-900 text-white rounded-xl p-5 shadow-sm md:col-span-2">
           <div class="flex items-center justify-between border-b border-slate-700 pb-2.5 mb-3">
-            <span class="font-bold text-sm md:text-base">【原文】朝日新聞ニュース記事（客観レベル：9. N1前半相当）</span>
+            <span class="font-bold text-sm md:text-base">【原文】朝日新聞ニュース記事（客観レベル：9. N1前半（上級、ビジネス日本語）相当）</span>
             <span class="text-xs px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full">100% 基準テキスト</span>
           </div>
           <div class="space-y-2 text-sm md:text-base leading-relaxed text-slate-100">
