@@ -85,6 +85,9 @@
         <p class="text-xs text-slate-600 mt-0.5">本ページは、<strong class="text-violet-800">Gemini 4 Astra</strong> の日本語能力をチェックするために作成したものです。</p>
       </div>
 
+      <div class="flex flex-col items-start lg:items-end gap-1.5">
+        <!-- 運営者表記（右上） -->
+        <div class="text-xs text-slate-600 font-medium"><a href="https://www.i-seifu.jp/" target="_blank" rel="noopener" class="hover:underline hover:text-blue-700">清風情報工科学院</a> / <a href="https://note.com/norito_hiraoka/" target="_blank" rel="noopener" class="hover:underline hover:text-blue-700">清風AI研究所</a></div>
       <div class="flex flex-wrap items-center gap-2">
         <!-- 表示モード切替ボタン -->
         <div id="modeButtonsContainer" class="inline-flex rounded-lg border border-slate-300 bg-slate-100 p-1 text-xs md:text-sm font-medium">
@@ -104,6 +107,7 @@
           <input type="checkbox" id="toggleHighlights" checked onchange="document.body.classList.toggle('hide-highlights', !this.checked)" class="rounded text-blue-600 focus:ring-blue-500">
           <span class="font-medium text-slate-700">変更ハイライト表示</span>
         </label>
+      </div>
       </div>
     </div>
 
@@ -186,6 +190,11 @@
       <div id="allLevelsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
     </section>
   </main>
+
+  <!-- 運営者表記（画面下中央） -->
+  <footer class="max-w-7xl mx-auto px-4 mt-12 pt-6 border-t border-slate-200 text-center text-sm text-slate-600">
+    <a href="https://www.i-seifu.jp/" target="_blank" rel="noopener" class="hover:underline hover:text-blue-700">清風情報工科学院</a> / <a href="https://note.com/norito_hiraoka/" target="_blank" rel="noopener" class="hover:underline hover:text-blue-700">清風AI研究所</a>
+  </footer>
 
   <script>
     // 原文データ（セクション別）
