@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini 4 Astra 日本語能力チェック｜原文 vs JLPT全10段階 比較ビューア</title>
+  <meta name="description" content="Gemini 4 Astra の日本語能力をチェックするために作成した、報道記事のJLPT10段階書き分け比較ビューア">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+    }
+    /* カラーハイライト定義 */
+    .hl-orig {
+      background-color: #f1f5f9;
+      border-bottom: 2px dashed #64748b;
+      padding: 0 3px;
+      border-radius: 3px;
+      font-weight: 500;
+    }
+    .hl-vocab {
+      background-color: #fef08a;
+      border-bottom: 2px solid #eab308;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+    .hl-grammar {
+      background-color: #bae6fd;
+      border-bottom: 2px solid #0284c7;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+    .hl-match {
+      background-color: #bbf7d0;
+      border-bottom: 2px solid #16a34a;
+      padding: 0 3px;
+      border-radius: 3px;
+      font-weight: 500;
+    }
+    /* ハイライト非表示モード（純粋な教材通読用） */
+    body.hide-highlights .hl-orig,
+    body.hide-highlights .hl-vocab,
+    body.hide-highlights .hl-grammar,
+    body.hide-highlights .hl-match {
+      background-color: transparent !important;
+      border-bottom: none !important;
+      padding: 0 !important;
+      font-weight: inherit !important;
+    }
+    ruby rt {
+      font-size: 0.65em;
+      color: #475569;
+      font-weight: normal;
+    }
+    .level-btn.active {
+      background-color: #1e40af;
+      color: #ffffff;
+      border-color: #1e3a8a;
+      box-shadow: 0 4px 6px -1px rgba(30, 64, 175, 0.3);
+      transform: translateY(-1px);
+    }
+    .mode-btn.active {
+      background-color: #0f172a;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-16">
+
+  <!-- ヘッダー＆コントロールバー -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 text-xs font-bold bg-violet-100 text-violet-800 rounded-full">Gemini 4 Astra 日本語能力チェック</span>
+          <span class="px-2.5 py-0.5 text-xs font-bold bg-blue-100 text-blue-800 rounded-full">報道記事スキャフォールディング教材</span>
+          <span class="px-2.5 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full">原文客観レベル：9. N1前半（上限キャップ）</span>
+        </div>
+        <h1 class="text-lg md:text-xl font-bold text-slate-900 mt-1">
+          原文 vs JLPT全10段階（N5前半〜N1後半）比較ビューア
+        </h1>
+        <p class="text-xs text-slate-600 mt-0.5">本ページは、<strong class="text-violet-800">Gemini 4 Astra</strong> の日本語能力をチェックするために作成したものです。</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- 表示モード切替ボタン -->
+        <div id="modeButtonsContainer" class="inline-flex rounded-lg border border-slate-300 bg-slate-100 p-1 text-xs md:text-sm font-medium">
+          <button onclick="switchMode('section')" id="btn-mode-section" class="mode-btn active px-3 py-1.5 rounded-md transition">
+            段落ごと原文比較
+          </button>
+          <button onclick="switchMode('matrix')" id="btn-mode-matrix" class="mode-btn px-3 py-1.5 rounded-md transition">
+            主要表現マトリクス（10段階）
+          </button>
+          <button onclick="switchMode('all')" id="btn-mode-all" class="mode-btn px-3 py-1.5 rounded-md transition">
+            全10段階一覧
+          </button>
+        </div>
+
+        <!-- ハイライトON/OFFトグル -->
+        <label class="flex items-center gap-2 text-xs md:text-sm bg-slate-50 border border-slate-300 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-100 select-none">
+          <input type="checkbox" id="toggleHighlights" checked onchange="document.body.classList.toggle('hide-highlights', !this.checked)" class="rounded text-blue-600 focus:ring-blue-500">
+          <span class="font-medium text-slate-700">変更ハイライト表示</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 凡例バー -->
+    <div class="bg-slate-50 border-t border-slate-200 px-4 py-2 text-xs">
+      <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-x-5 gap-y-1.5 text-slate-600">
+        <span class="font-bold text-slate-700">【ハイライト凡例】</span>
+        <span><mark class="hl-orig">原文の重要表現・難語</mark></span>
+        <span><mark class="hl-vocab">語彙の平易化・言い換え</mark>（漢語→和語・具体化）</span>
+        <span><mark class="hl-grammar">文法・構文の調整</mark>（単文化・接続・文型調整）</span>
+        <span><mark class="hl-match">原文の表現に完全到達（アンロック完了）</mark></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 mt-6">
+    <!-- レベル選択ボタンバー -->
+    <section id="levelSelectorBar" class="mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div class="flex items-center justify-between mb-2.5">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">比較するJLPTレベルを選択（クリックで切替）</h2>
+        <span class="text-xs text-slate-500">※N1前半で原文100%到達・N1後半は上限ロック</span>
+      </div>
+      <div id="levelButtonsGrid" class="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2"></div>
+    </section>
+
+    <!-- ビュー1：段落ごと原文比較モード -->
+    <section id="view-section" class="space-y-6">
+      <!-- 原文カード（全レベル共通で常時表示） -->
+      <div id="originalTextCard" class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm"></div>
+      <!-- レベル概要カード -->
+      <div id="levelSummaryCard" class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm"></div>
+      <!-- 3カラム比較カードコンテナ -->
+      <div id="sectionCardsContainer" class="space-y-5"></div>
+    </section>
+
+    <!-- ビュー2：主要表現マトリクスモード -->
+    <section id="view-matrix" class="hidden">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 bg-slate-50">
+          <h2 class="text-base font-bold text-slate-800">主要表現 10段階スキャフォールディング・マトリクス</h2>
+          <p class="text-xs text-slate-600 mt-0.5">原文の核となる5つの報道表現が、N5前半の単文からどのように段階的に解禁（アンロック）され、N1前半で原文に一致するかを比較できます。</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs md:text-sm">
+            <thead>
+              <tr class="bg-slate-800 text-white">
+                <th class="p-3 border-r border-slate-700 w-36">レベル</th>
+                <th class="p-3 border-r border-slate-700">① 見出し（建設へ／協議）</th>
+                <th class="p-3 border-r border-slate-700">② 企業・取材（米開発企業／取材でわかった）</th>
+                <th class="p-3 border-r border-slate-700">③ 規模・位置づけ（1兆円規模／最大級／拠点）</th>
+                <th class="p-3 border-r border-slate-700">④ 立地・設備（沿岸部／受電容量／調整）</th>
+                <th class="p-3">⑤ 展開・目的（昨秋／開設／事業拡大の狙い）</th>
+              </tr>
+            </thead>
+            <tbody id="matrixTableBody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ビュー3：全10段階一覧モード -->
+    <section id="view-all" class="hidden">
+      <div class="mb-4 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-800">全10段階＋原文 通読カード一覧</h2>
+          <p class="text-xs text-slate-600">上部の「変更ハイライト表示」のチェックを外すと、純粋な読解教材テキストとして通読・コピーできます。</p>
+        </div>
+      </div>
+      <div id="allLevelsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+    </section>
+  </main>
+
+  <script>
+    // 原文データ（セクション別）
+    const originalData = {
+      title: "原文（朝日新聞ニュース記事 / 客観レベル：9. N1前半相当）",
+      sourceUrl: "https://news.yahoo.co.jp/articles/064ff639da898c6f6fd2d676486b44145b31aded",
+      sourceLabel: "アンソロピック、大阪にAIデータセンター建設へ NTTと協議（朝日新聞） - Yahoo!ニュース",
+      sections: [
+        {
+          label: "セクション1：見出し・配信日時",
+          html: `アンソロピック、大阪にAI<span class="hl-orig">データセンター建設へ</span> NTTと<span class="hl-orig">協議</span><br><span class="text-xs text-slate-500">10/13(火) 17:50<span class="hl-orig">配信</span></span>`,
+          plain: "アンソロピック、大阪にAIデータセンター建設へ NTTと協議\n10/13(火) 17:50配信"
+        },
+        {
+          label: "セクション2：第1段落（建設計画・費用規模・アジア初の拠点）",
+          html: ` NTTが、<span class="hl-orig">米AI（人工知能）開発企業</span>アンソロピック<span class="hl-orig">向け</span>のデータセンターを<span class="hl-orig">大阪府内に建設する方向で協議していることが関係者への取材でわかった</span>。<span class="hl-orig">建設費は1兆円規模とみられ</span>、<span class="hl-orig">実現すれば国内最大級</span>。アンソロピック<span class="hl-orig">にとってはアジア初のデータセンター拠点になりそうだ</span>。`,
+          plain: " NTTが、米AI（人工知能）開発企業アンソロピック向けのデータセンターを大阪府内に建設する方向で協議していることが関係者への取材でわかった。建設費は1兆円規模とみられ、実現すれば国内最大級。アンソロピックにとってはアジア初のデータセンター拠点になりそうだ。"
+        },
+        {
+          label: "セクション3：第2段落（立地・受電容量・東京オフィス開設と今後の狙い）",
+          html: ` <span class="hl-orig">関係者によると</span>、NTTデータグループが大阪府の<span class="hl-orig">沿岸部</span>に<span class="hl-orig">受電容量500メガワット</span>のデータセンターを建設する方向で<span class="hl-orig">調整を進めている</span>。アンソロピックは<span class="hl-orig">昨秋</span>、<span class="hl-orig">アジア太平洋地域</span>で初めて東京に<span class="hl-orig">オフィスを開設</span>。アジア地域で<span class="hl-orig">複数のデータセンター建設を目指しており</span>、日本やアジアでの<span class="hl-orig">事業をさらに拡大する狙いがあるとみられる</span>。<br><span class="text-xs text-slate-500">朝日新聞社</span>`,
+          plain: " 関係者によると、NTTデータグループが大阪府の沿岸部に受電容量500メガワットのデータセンターを建設する方向で調整を進めている。アンソロピックは昨秋、アジア太平洋地域で初めて東京にオフィスを開設。アジア地域で複数のデータセンター建設を目指しており、日本やアジアでの事業をさらに拡大する狙いがあるとみられる。\n朝日新聞社"
+        }
+      ],
+      matrix: [
+        `AI<span class="hl-orig">データセンター建設へ</span> NTTと<span class="hl-orig">協議</span>`,
+        `<span class="hl-orig">米AI（人工知能）開発企業</span>…<span class="hl-orig">協議していることが関係者への取材でわかった</span>`,
+        `<span class="hl-orig">建設費は1兆円規模とみられ</span>、<span class="hl-orig">実現すれば国内最大級</span>…<span class="hl-orig">アジア初のデータセンター拠点になりそうだ</span>`,
+        `大阪府の<span class="hl-orig">沿岸部</span>に<span class="hl-orig">受電容量500メガワット</span>…<span class="hl-orig">調整を進めている</span>`,
+        `<span class="hl-orig">昨秋</span>…東京に<span class="hl-orig">オフィスを開設</span>…<span class="hl-orig">事業をさらに拡大する狙いがあるとみられる</span>`
+      ]
+    };
+
+    // 全10段階のデータ定義
+    const levelsData = [
+      {
+        id: "n5-1",
+        code: "1. N5前半",
+        sub: "入門・13課相当",
+        reach: 15,
+        stats: "14文（すべて1文1動詞の単文） / 約310字",
+        grammarGuide: "「〜ます／〜です」の基本形・過去形のみ。複文（〜から、〜とき）・て形接続・複合動詞は全面禁止。接続詞「そして」等で単文を結合。",
+        vocabUnlock: "N5配当漢字のみ（初出ルビ）。「データセンター→コンピューターのたてもの」「協議→いっしょにはなしました」に具体化。",
+        sections: [
+          {
+            html: `アンソロピックとNTTは <ruby>大<rt>おお</rt></ruby>さかに AIの <span class="hl-vocab">たてもの</span>を <span class="hl-grammar">つくります</span><br><span class="text-xs text-slate-500">10<ruby>月<rt>がつ</rt></ruby>13<ruby>日<rt>にち</rt></ruby>の <span class="hl-vocab">ニュースです</span>。</span>`,
+            notes: [
+              "体言止めの見出しを「〜は〜をつくります」の1文1動詞の単文に変換。",
+              "「データセンター」を「AIのたてもの」に平易化。"
+            ]
+          },
+          {
+            html: ` NTTは 日本の <ruby>会社<rt>かいしゃ</rt></ruby>です。アンソロピックは <span class="hl-vocab">アメリカの AIの 会社</span>です。<span class="hl-grammar">ふたつは いっしょに はなしました。そして</span>、<ruby>大<rt>おお</rt></ruby>さかに <ruby>大<rt>おお</rt></ruby>きい <span class="hl-vocab">コンピューターの たてもの</span>を つくります。<span class="hl-vocab">お<ruby>金<rt>かね</rt></ruby></span>は 1<ruby>兆<rt>ちょう</rt></ruby><ruby>円<rt>えん</rt></ruby>ぐらい <span class="hl-grammar">かかります</span>。<span class="hl-grammar">日本で いちばん <ruby>大<rt>おお</rt></ruby>きいです</span>。アジアで <span class="hl-vocab">はじめて</span>の アンソロピックの たてものです。`,
+            notes: [
+              "連体修飾節や内容節（「〜ことがわかった」）を禁止し、7つの単文に分割。",
+              "「建設費→お金」「国内最大級→日本でいちばん大きいです」に置換。"
+            ]
+          },
+          {
+            html: ` NTTデータグループは <ruby>大<rt>おお</rt></ruby>さかの <span class="hl-vocab"><ruby>海<rt>うみ</rt></ruby>の ちかく</span>に たてものを つくります。<span class="hl-grammar">この たてものは たくさん <ruby>電気<rt>でんき</rt></ruby>を つかいます</span>。アンソロピックは <span class="hl-vocab">きょねんの あき</span>、<ruby>東<rt>とう</rt></ruby><ruby>京<rt>きょう</rt></ruby>に はじめて <span class="hl-vocab">会社を つくりました</span>。これから アジアに <span class="hl-vocab">たくさん</span> コンピューターの たてものを つくります。日本と アジアで <span class="hl-vocab">もっと しごとを します</span>。<br><span class="text-xs text-slate-500">あさひしんぶん</span>`,
+            notes: [
+              "「沿岸部→海のちかく」「受電容量500MW→たくさん電気をつかいます」を別文として独立。",
+              "「昨秋→きょねんのあき」「事業拡大→もっとしごとをします」に変換。"
+            ]
+          }
+        ],
+        matrix: [
+          `AIの <span class="hl-vocab">たてもの</span>を <span class="hl-grammar">つくります</span>`,
+          `<span class="hl-vocab">アメリカの AIの 会社</span>です。<span class="hl-grammar">ふたつは いっしょに はなしました。</span>`,
+          `<span class="hl-vocab">お金</span>は 1兆円ぐらい <span class="hl-grammar">かかります</span>。<span class="hl-vocab">日本で いちばん 大きいです</span>。`,
+          `<span class="hl-vocab">海の ちかく</span>に たてものを つくります。<span class="hl-grammar">たくさん 電気を つかいます</span>。`,
+          `<span class="hl-vocab">きょねんの あき</span>、東京に <span class="hl-vocab">会社を つくりました</span>。<span class="hl-vocab">もっと しごとを します</span>。`
+        ]
+      },
+      {
+        id: "n5-2",
+        code: "2. N5後半",
+        sub: "初級前半・25課相当",
+        reach: 28,
+        stats: "9文（基本的な複文を解禁） / 約340字",
+        grammarGuide: "「〜て、」「〜から」「〜たら」「〜と思います」「〜と言いました」「〜こと（名詞節）」を解禁。可能・受身・条件形（〜ば）は禁止。",
+        vocabUnlock: "「オフィス」「データ」「500メガワット」「じゅんび」を導入。N5配当漢字のみ使用。",
+        sections: [
+          {
+            html: `アンソロピックが <ruby>大<rt>おお</rt></ruby>さかに AIの <span class="hl-vocab">たてもの</span>を <span class="hl-grammar">つくる はなしを しています</span><br><span class="text-xs text-slate-500">10<ruby>月<rt>がつ</rt></ruby>13<ruby>日<rt>にち</rt></ruby>の ニュースです。</span>`,
+            notes: [
+              "連体修飾「つくるはなしをしています」を解禁し、1文で見出しを構成。"
+            ]
+          },
+          {
+            html: ` NTTは、<span class="hl-vocab">アメリカの AIの <ruby>会社<rt>かいしゃ</rt></ruby></span>の アンソロピックと はなしています。<span class="hl-grammar">会社の <ruby>人<rt>ひと</rt></ruby>に きいて</span>、<ruby>大<rt>おお</rt></ruby>さかに <span class="hl-vocab">データの たてもの</span>を <span class="hl-grammar">つくることが わかりました</span>。<span class="hl-vocab">つくる お<ruby>金<rt>かね</rt></ruby></span>は 1<ruby>兆<rt>ちょう</rt></ruby><ruby>円<rt>えん</rt></ruby>ぐらいに <span class="hl-grammar">なると おもいます</span>。<span class="hl-grammar">この たてものが できたら</span>、日本で いちばん <ruby>大<rt>おお</rt></ruby>きいです。アンソロピックは、アジアで はじめて この たてものを つくります。`,
+            notes: [
+              "て形接続「会社の人にきいて」と名詞化「つくることがわかりました」を解禁。",
+              "推量「〜とおもいます」と仮定「〜たら」で原文の論理構造に一歩接近。"
+            ]
+          },
+          {
+            html: ` <span class="hl-grammar">会社の 人が いいました</span>。NTTデータグループは、<ruby>大<rt>おお</rt></ruby>さかの <span class="hl-vocab"><ruby>海<rt>うみ</rt></ruby>の ちかく</span>に <span class="hl-vocab">500メガワットの <ruby>電気<rt>でんき</rt></ruby>を つかう</span> たてものを つくる <span class="hl-vocab">じゅんびを しています</span>。アンソロピックは <span class="hl-vocab">きょねんの あき</span>、アジアで はじめて <ruby>東<rt>とう</rt></ruby><ruby>京<rt>きょう</rt></ruby>に <span class="hl-match">オフィス</span>を つくりました。アジアで <span class="hl-vocab">いくつも</span> データの たてものを <span class="hl-grammar">つくりたいと おもっていますから</span>、日本や アジアで <span class="hl-vocab">もっと しごとを 大きくすると おもいます</span>。<br><span class="text-xs text-slate-500">あさひしんぶん</span>`,
+            notes: [
+              "「500メガワットの電気をつかうたてもの」と連体修飾節を解禁。",
+              "「オフィス」が原文語彙としてアンロック。理由の「〜から」で最終文を接続。"
+            ]
+          }
+        ],
+        matrix: [
+          `AIの たてものを <span class="hl-grammar">つくる はなしを しています</span>`,
+          `<span class="hl-grammar">会社の 人に きいて</span>、…<span class="hl-grammar">つくることが わかりました</span>`,
+          `1兆円ぐらいに <span class="hl-grammar">なると おもいます</span>。<span class="hl-grammar">できたら</span>、日本で いちばん 大きいです。`,
+          `<span class="hl-vocab">海の ちかく</span>に <span class="hl-vocab">500メガワットの 電気を つかう</span>…<span class="hl-vocab">じゅんびを しています</span>`,
+          `<span class="hl-vocab">きょねんの あき</span>…東京に <span class="hl-match">オフィス</span>を つくりました。…<span class="hl-vocab">しごとを 大きくすると おもいます</span>`
+        ]
+      },
+      {
+        id: "n4-1",
+        code: "3. N4前半",
+        sub: "38課相当",
+        reach: 42,
+        stats: "7文 / 約325字",
+        grammarGuide: "目的（〜ために）、様態・伝聞（〜そうです／〜ようです／〜によると）、条件（〜ば）、可能形（使える）、意向形（建てよう）を解禁。",
+        vocabUnlock: "N4漢字（建、開、仕、事等）を解禁。「人工知能」「データセンター」「大阪府」「方向」「準備」をアンロック。",
+        sections: [
+          {
+            html: `アンソロピックが<ruby>大阪<rt>おおさか</rt></ruby>にAIの<span class="hl-match">データセンター</span>を<span class="hl-vocab"><ruby>建<rt>た</rt></ruby>てる</span><span class="hl-grammar">ために</span>NTTと<span class="hl-vocab"><ruby>話<rt>はな</rt></ruby>しています</span><br><span class="text-xs text-slate-500">10月13日（火）17時50分のニュースです。</span>`,
+            notes: [
+              "「データセンター」を解禁。目的の「〜ために」で見出しの意図を明確化。"
+            ]
+          },
+          {
+            html: ` NTTが、アメリカの<span class="hl-match">AI（人工知能）</span>を<span class="hl-vocab"><ruby>作<rt>つく</rt></ruby>る<ruby>会社<rt>かいしゃ</rt></ruby></span>「アンソロピック」<span class="hl-vocab">のために</span>、データセンターを<span class="hl-match">大阪府</span>に<span class="hl-vocab">建てる</span><span class="hl-match"><ruby>方向<rt>ほうこう</rt></ruby>で</span>話している<span class="hl-match">ことが</span><span class="hl-match">わかりました</span>。<span class="hl-vocab">建てるためのお金</span>は1<ruby>兆円<rt>ちょうえん</rt></ruby>ぐらいに<span class="hl-grammar">なるそうで</span>、<span class="hl-grammar">もしできれば</span>日本で<span class="hl-vocab"><ruby>一番<rt>いちばん</rt></ruby>大きくなります</span>。<span class="hl-match">アンソロピックにとっては</span>、アジアで<span class="hl-vocab"><ruby>初<rt>はじ</rt></ruby>めて</span>の<span class="hl-match">データセンター</span>に<span class="hl-match">なりそうです</span>。`,
+            notes: [
+              "「方向で」「アンソロピックにとっては」「〜になりそうです」が原文構文に到達。",
+              "伝聞「〜なるそうで」、仮定条件「もしできれば」を解禁。"
+            ]
+          },
+          {
+            html: ` <span class="hl-vocab">会社の人</span><span class="hl-match">によると</span>、NTTデータグループが大阪府の<span class="hl-vocab"><ruby>海<rt>うみ</rt></ruby>の<ruby>近<rt>ちか</rt></ruby>く</span>に、<span class="hl-vocab">500メガワットの<ruby>電気<rt>でんき</rt></ruby>を<ruby>使<rt>つか</rt></ruby>える</span>データセンターを建てるために<span class="hl-vocab"><ruby>準備<rt>じゅんび</rt></ruby>をしています</span>。アンソロピックは<span class="hl-vocab"><ruby>去年<rt>きょねん</rt></ruby>の<ruby>秋<rt>あき</rt></ruby></span>、アジアで初めて<ruby>東京<rt>とうきょう</rt></ruby>に<span class="hl-match">オフィスを</span><span class="hl-vocab"><ruby>開<rt>ひら</rt></ruby>きました</span>。アジアで<span class="hl-vocab">いくつも</span>データセンターを<span class="hl-grammar">建てようと思っていて</span>、日本やアジアでの<span class="hl-vocab"><ruby>仕事<rt>しごと</rt></ruby>をもっと大きくしたい</span><span class="hl-grammar">ようです</span>。<br><span class="text-xs text-slate-500">朝日新聞社</span>`,
+            notes: [
+              "伝聞の引用「〜によると」、可能形「電気を使える」、意向形「建てようと思っていて」、様態推量「〜ようです」を解禁。"
+            ]
+          }
+        ],
+        matrix: [
+          `<span class="hl-match">データセンター</span>を<span class="hl-vocab">建てる</span><span class="hl-grammar">ために</span>NTTと<span class="hl-vocab">話しています</span>`,
+          `アメリカの<span class="hl-match">AI（人工知能）</span>を<span class="hl-vocab">作る会社</span>…<span class="hl-match">方向で</span>話している<span class="hl-match">ことがわかりました</span>`,
+          `1兆円ぐらいに<span class="hl-grammar">なるそうで</span>、<span class="hl-grammar">もしできれば</span>日本で<span class="hl-vocab">一番大きくなります</span>…<span class="hl-match">なりそうです</span>`,
+          `<span class="hl-vocab">海の近く</span>に、500メガワットの<span class="hl-vocab">電気を使える</span>…<span class="hl-vocab">準備をしています</span>`,
+          `<span class="hl-vocab">去年の秋</span>…<span class="hl-match">オフィスを</span><span class="hl-vocab">開きました</span>…<span class="hl-vocab">仕事をもっと大きくしたい</span><span class="hl-grammar">ようです</span>`
+        ]
+      },
+      {
+        id: "n4-2",
+        code: "4. N4後半",
+        sub: "初級完結・50課相当",
+        reach: 55,
+        stats: "6文（原文と同じ文数に到達） / 約325字",
+        grammarGuide: "初級文法をすべて解禁。日常的な複合動詞（話し合う、受け取る、進める、目指す）を解禁し、原文の6文構成に統合。",
+        vocabUnlock: "「開発」「取材」「費用」「アジア太平洋地域」「目的」「さらに」を解禁。",
+        sections: [
+          {
+            html: `アンソロピック、<ruby>大阪<rt>おおさか</rt></ruby>にAI<span class="hl-match">データセンター</span>を<span class="hl-vocab"><ruby>建<rt>た</rt></ruby>てるために</span>NTTと<span class="hl-vocab">話し合い</span><br><span class="text-xs text-slate-500"><span class="hl-match">10/13(火) 17:50配信</span></span>`,
+            notes: [
+              "見出しの読点「アンソロピック、」と体言止め「話し合い」、および「配信」表記を解禁。"
+            ]
+          },
+          {
+            html: ` NTTが、アメリカの<span class="hl-match">AI（人工知能）</span>を<span class="hl-vocab"><ruby>開発<rt>かいはつ</rt></ruby>する<ruby>会社<rt>かいしゃ</rt></ruby></span>・アンソロピック<span class="hl-vocab">のための</span>データセンターを<span class="hl-match">大阪府</span>の<ruby>中<rt>なか</rt></ruby>に<span class="hl-vocab">建てる</span><span class="hl-match"><ruby>方向<rt>ほうこう</rt></ruby>で</span><span class="hl-vocab">話し合っている</span><span class="hl-match">ことが</span>、<span class="hl-vocab">会社の人</span><span class="hl-match">への<ruby>取材<rt>しゅざい</rt></ruby>で</span><span class="hl-match">わかりました</span>。<span class="hl-vocab">建てるための<ruby>費用<rt>ひよう</rt></ruby></span>は1<ruby>兆円<rt>ちょうえん</rt></ruby><span class="hl-vocab">ぐらいになるようで</span>、<span class="hl-grammar">もしできれば</span><span class="hl-vocab">日本で<ruby>一番<rt>いちばん</rt></ruby>大きなものになります</span>。<span class="hl-match">アンソロピックにとっては</span>、アジアで<span class="hl-vocab"><ruby>初<rt>はじ</rt></ruby>めての</span>データセンターの<span class="hl-vocab"><ruby>場所<rt>ばしょ</rt></ruby></span>に<span class="hl-match">なりそうです</span>。`,
+            notes: [
+              "複合動詞「話し合う」と「〜への取材で」が解禁され、第1文の骨格が原文とほぼ一致。",
+              "「費用」「場所（拠点の平易化）」を導入。"
+            ]
+          },
+          {
+            html: ` <span class="hl-vocab">会社の人</span><span class="hl-match">によると</span>、NTTデータグループが大阪府の<span class="hl-vocab"><ruby>海<rt>うみ</rt></ruby>の<ruby>近<rt>ちか</rt></ruby>く</span>に、500メガワットの<span class="hl-vocab"><ruby>電気<rt>でんき</rt></ruby>を<ruby>受<rt>う</rt></ruby>け<ruby>取<rt>と</rt></ruby>ることができる</span>データセンターを建てる<span class="hl-match">方向で</span><span class="hl-vocab"><ruby>準備<rt>じゅんび</rt></ruby>を</span><span class="hl-match"><ruby>進<rt>すす</rt></ruby>めています</span>。アンソロピックは<span class="hl-vocab"><ruby>去年<rt>きょねん</rt></ruby>の<ruby>秋<rt>あき</rt></ruby></span>、<span class="hl-match">アジア<ruby>太平洋<rt>たいへいよう</rt></ruby><ruby>地域<rt>ちいき</rt></ruby>で初めて東京にオフィスを</span><span class="hl-vocab"><ruby>開<rt>ひら</rt></ruby>きました</span>。<span class="hl-match">アジア地域で</span><span class="hl-vocab">いくつかの</span>データセンターを<span class="hl-vocab">建てることを</span><span class="hl-match"><ruby>目指<rt>めざ</rt></ruby>して</span><span class="hl-grammar">いて</span>、<span class="hl-match">日本やアジアでの</span><span class="hl-vocab"><ruby>仕事<rt>しごと</rt></ruby></span>を<span class="hl-match">さらに</span><span class="hl-vocab"><ruby>広<rt>ひろ</rt></ruby>げる<ruby>目的<rt>もくてき</rt></ruby>がある</span><span class="hl-grammar">ようです</span>。<br><span class="text-xs text-slate-500">朝日新聞社</span>`,
+            notes: [
+              "「受電容量」の前段階として複合動詞「電気を受け取ることができる」を導入。",
+              "「アジア太平洋地域で初めて東京にオフィスを」「目指して」「さらに」が原文に到達。"
+            ]
+          }
+        ],
+        matrix: [
+          `AI<span class="hl-match">データセンター</span>を<span class="hl-vocab">建てるために</span>NTTと<span class="hl-vocab">話し合い</span>`,
+          `<span class="hl-vocab">開発する会社</span>…<span class="hl-vocab">話し合っている</span>ことが…<span class="hl-match">への取材で</span>わかりました`,
+          `<span class="hl-vocab">費用</span>は1兆円ぐらいになるようで…<span class="hl-vocab">場所</span>に<span class="hl-match">なりそうです</span>`,
+          `<span class="hl-vocab">海の近く</span>に、500メガワットの<span class="hl-vocab">電気を受け取ることができる</span>…準備を<span class="hl-match">進めています</span>`,
+          `<span class="hl-vocab">去年の秋</span>…オフィスを<span class="hl-vocab">開きました</span>…さらに<span class="hl-vocab">広げる目的がある</span>ようです`
+        ]
+      },
+      {
+        id: "n3-1",
+        code: "5. N3前半",
+        sub: "中級導入・書き言葉",
+        reach: 68,
+        stats: "6文（「だ・である」調へ移行） / 約310字",
+        grammarGuide: "「だ・である」調に移行。見出しの「〜へ」、受身推量「〜とみられ」、仮定「実現すれば」を解禁。ふりがなを撤廃。",
+        vocabUnlock: "「建設」「向け」「大阪府内」「関係者」「実現」「国内」「調整」「複数」「拡大」を解禁。",
+        sections: [
+          {
+            html: `アンソロピック、大阪に<span class="hl-match">AIデータセンター</span>を<span class="hl-match">建設へ</span> NTTと<span class="hl-vocab">話し合い</span><br><span class="text-xs text-slate-500"><span class="hl-match">10/13(火) 17:50配信</span></span>`,
+            notes: [
+              "見出し特有の方向性を示す「〜建設へ」を解禁。"
+            ]
+          },
+          {
+            html: ` NTTが、アメリカの<span class="hl-match">AI（人工知能）開発</span><span class="hl-vocab">会社である</span><span class="hl-match">アンソロピック向けのデータセンターを大阪府内に建設する方向で</span><span class="hl-vocab">話し合っている</span><span class="hl-match">ことが</span>、<span class="hl-match">関係者への取材</span><span class="hl-grammar">によって</span><span class="hl-match">わかった</span>。<span class="hl-vocab">建設の費用</span>は1兆円<span class="hl-vocab">ほどになる</span><span class="hl-match">とみられ</span>、<span class="hl-match">実現すれば国内</span>で<span class="hl-vocab">最も大きいクラスになる</span>。<span class="hl-match">アンソロピックにとっては</span>、アジア<span class="hl-vocab">で初めての</span>データセンターの<span class="hl-vocab">中心地</span><span class="hl-match">になりそうだ</span>。`,
+            notes: [
+              "「アンソロピック向けのデータセンターを大阪府内に建設する方向で」「関係者への取材」「〜とみられ」「実現すれば国内〜」が一気に原文一致。"
+            ]
+          },
+          {
+            html: ` <span class="hl-match">関係者によると、NTTデータグループが大阪府の</span><span class="hl-vocab">海沿いの地域</span>に、<span class="hl-vocab">500メガワットの電気を使える</span><span class="hl-match">データセンターを建設する方向で調整を進めている</span>。アンソロピックは<span class="hl-vocab">去年の秋</span>、<span class="hl-match">アジア太平洋地域で初めて東京にオフィスを</span><span class="hl-vocab">開いた</span>。<span class="hl-match">アジア地域で複数のデータセンター</span>を<span class="hl-match">建設</span><span class="hl-grammar">すること</span>を<span class="hl-match">目指しており</span>、<span class="hl-match">日本やアジアでの</span><span class="hl-vocab">ビジネス</span>を<span class="hl-match">さらに拡大する</span><span class="hl-vocab">目的</span><span class="hl-match">があるとみられる</span>。<br><span class="text-xs text-slate-500">朝日新聞社</span>`,
+            notes: [
+              "「データセンターを建設する方向で調整を進めている」「複数の」「目指しており」「さらに拡大する〜があるとみられる」が原文に到達。"
+            ]
+          }
+        ],
+        matrix: [
+          `<span class="hl-match">AIデータセンター</span>を<span class="hl-match">建設へ</span> NTTと<span class="hl-vocab">話し合い</span>`,
+          `<span class="hl-match">AI（人工知能）開発</span><span class="hl-vocab">会社</span>…<span class="hl-match">関係者への取材</span><span class="hl-grammar">によって</span><span class="hl-match">わかった</span>`,
+          `1兆円ほどになると<span class="hl-match">みられ</span>、<span class="hl-match">実現すれば国内</span>で<span class="hl-vocab">最も大きいクラス</span>…<span class="hl-vocab">中心地</span><span class="hl-match">になりそうだ</span>`,
+          `<span class="hl-vocab">海沿いの地域</span>に…<span class="hl-match">建設する方向で調整を進めている</span>`,
+          `<span class="hl-vocab">去年の秋</span>…オフィスを<span class="hl-vocab">開いた</span>…<span class="hl-match">さらに拡大する</span><span class="hl-vocab">目的</span><span class="hl-match">があるとみられる</span>`
+        ]
+      },
+      {
+        id: "n3-2",
+        code: "6. N3後半",
+        sub: "中級定着レベル",
+        reach: 80,
+        stats: "6文 / 約295字",
+        grammarGuide: "報道文体の骨格（〜ことが関係者への取材でわかった、〜を目指しており）を完全適用。名詞止め・体言止め前段階。",
+        vocabUnlock: "「企業」「建設費」「1兆円規模」「アジア初」「拠点」「電力」「開設」「事業」をアンロック。",
+        sections: [
+          {
+            html: `<span class="hl-match">アンソロピック、大阪にAIデータセンター建設へ</span> NTTと<span class="hl-vocab">相談</span><br><span class="text-xs text-slate-500"><span class="hl-match">10/13(火) 17:50配信</span></span>`,
+            notes: [
+              "助詞「を」を省略した報道見出し「AIデータセンター建設へ」が原文に完全一致。"
+            ]
+          },
+          {
+            html: ` NTTが、<span class="hl-vocab">アメリカの</span><span class="hl-match">AI（人工知能）開発企業アンソロピック向けのデータセンターを大阪府内に建設する方向で</span><span class="hl-vocab">相談している</span><span class="hl-match">ことが関係者への取材でわかった</span>。<span class="hl-match">建設費は1兆円規模とみられ、実現すれば国内</span><span class="hl-vocab">で最大クラスとなる</span>。<span class="hl-match">アンソロピックにとってはアジア初のデータセンター</span>の<span class="hl-match">拠点になりそうだ</span>。`,
+            notes: [
+              "「開発企業」「建設費は1兆円規模とみられ」「アジア初の」「拠点」が原文に到達。"
+            ]
+          },
+          {
+            html: ` <span class="hl-match">関係者によると、NTTデータグループが大阪府の</span><span class="hl-vocab">海沿いの地域</span>に、<span class="hl-vocab">最大500メガワットの電力を受け取る</span><span class="hl-match">データセンターを建設する方向で調整を進めている</span>。アンソロピックは<span class="hl-vocab">去年の秋</span>、<span class="hl-match">アジア太平洋地域で初めて東京にオフィスを開設</span><span class="hl-grammar">した</span>。<span class="hl-match">アジア地域で複数のデータセンター建設を目指しており、日本やアジアでの事業をさらに拡大する</span><span class="hl-vocab">目的</span><span class="hl-match">があるとみられる</span>。<br><span class="text-xs text-slate-500">朝日新聞社</span>`,
+            notes: [
+              "「オフィスを開設」「複数のデータセンター建設を目指しており」「事業をさらに拡大する」が原文に到達。"
+            ]
+          }
+        ],
+        matrix: [
+          `<span class="hl-match">AIデータセンター建設へ</span> NTTと<span class="hl-vocab">相談</span>`,
+          `<span class="hl-vocab">アメリカの</span><span class="hl-match">AI（人工知能）開発企業</span>…<span class="hl-vocab">相談している</span><span class="hl-match">ことが関係者への取材でわかった</span>`,
+          `<span class="hl-match">建設費は1兆円規模とみられ、実現すれば国内</span><span class="hl-vocab">で最大クラス</span>…<span class="hl-match">アジア初のデータセンター</span>の<span class="hl-match">拠点になりそうだ</span>`,
+          `<span class="hl-vocab">海沿いの地域</span>に、<span class="hl-vocab">最大500メガワットの電力を受け取る</span>…<span class="hl-match">調整を進めている</span>`,
+          `<span class="hl-vocab">去年の秋</span>…<span class="hl-match">東京にオフィスを開設</span>した…<span class="hl-match">事業をさらに拡大する</span><span class="hl-vocab">目的</span><span class="hl-match">があるとみられる</span>`
+        ]
+      },
+      {
+        id: "n2-1",
+        code: "7. N2前半",
+        sub: "実務・一般ニュース",
+        reach: 90,
+        stats: "6文 / 約282字",
+        grammarGuide: "文末の体言止め（「オフィスを開設。」）を解禁。報道記事の構文をほぼ100%適用。",
+        vocabUnlock: "「協議」「狙い」をアンロック。残る未解禁語は「米」「最大級」「沿岸部」「受電容量」「昨秋」の5語のみ。",
+        sections: [
+          {
+            html: `<span class="hl-match">アンソロピック、大阪にAIデータセンター建設へ NTTと協議</span><br><span class="text-xs text-slate-500"><span class="hl-match">10/13(火) 17:50配信</span></span>`,
+            notes: [
+              "「協議」が解禁され、見出しが原文に100%完全到達。"
+            ]
+          },
+          {
+            html: ` NTTが、<span class="hl-vocab">アメリカの</span><span class="hl-match">AI（人工知能）開発企業アンソロピック向けのデータセンターを大阪府内に建設する方向で協議していることが関係者への取材でわかった。建設費は1兆円規模とみられ、実現すれば国内</span><span class="hl-vocab">最大クラスだ</span>。<span class="hl-match">アンソロピックにとってはアジア初のデータセンター拠点になりそうだ。</span>`,
+            notes: [
+              "第1段落は「アメリカの（米）」「最大クラスだ（最大級。）」の2箇所を除き原文に完全一致。"
+            ]
+          },
+          {
+            html: ` <span class="hl-match">関係者によると、NTTデータグループが大阪府の</span><span class="hl-vocab">海岸エリア</span>に<span class="hl-vocab">電力容量500メガワット</span><span class="hl-match">のデータセンターを建設する方向で調整を進めている。アンソロピックは</span><span class="hl-vocab">去年の秋</span>、<span class="hl-match">アジア太平洋地域で初めて東京にオフィスを開設。アジア地域で複数のデータセンター建設を目指しており、日本やアジアでの事業をさらに拡大する狙いがあるとみられる。</span><br><span class="text-xs text-slate-500">朝日新聞社</span>`,
+            notes: [
+              "文末体言止め「オフィスを開設。」および「狙い」を解禁。最終文が原文に100%完全到達。"
+            ]
+          }
+        ],
+        matrix: [
+          `<span class="hl-match">AIデータセンター建設へ NTTと協議</span>`,
+          `<span class="hl-vocab">アメリカの</span><span class="hl-match">AI（人工知能）開発企業…協議していることが関係者への取材でわかった</span>`,
+          `<span class="hl-match">建設費は1兆円規模とみられ、実現すれば国内</span><span class="hl-vocab">最大クラスだ</span>…<span class="hl-match">アジア初のデータセンター拠点になりそうだ</span>`,
+          `大阪府の<span class="hl-vocab">海岸エリア</span>に<span class="hl-vocab">電力容量500メガワット</span>…<span class="hl-match">調整を進めている</span>`,
+          `<span class="hl-vocab">去年の秋</span>…<span class="hl-match">東京にオフィスを開設。…事業をさらに拡大する狙いがあるとみられる</span>`
+        ]
+      },
+      {
+        id: "n2-2",
+        code: "8. N2後半",
+        sub: "中上級・ビジネス実務",
+        reach: 95,
+        stats: "6文 / 約283字",
+        grammarGuide: "「実現すれば国内最大級。」の体言止めを含め、文法・文構造は100%原文と一致。",
+        vocabUnlock: "「国内最大級」を解禁。N1前半の硬い報道略語・専門語4箇所（「米」「沿岸部」「受電容量」「昨秋」）のみN2表現で補助した直前ステップ。",
+        sections: [
+          {
+            html: `<span class="hl-match">アンソロピック、大阪にAIデータセンター建設へ NTTと協議</span><br><span class="text-xs text-slate-500"><span class="hl-match">10/13(火) 17:50配信</span></span>`,
+            notes: [
+              "原文100%到達済み。"
+            ]
+          },
+          {
+            html: ` NTTが、<span class="hl-vocab">アメリカの</span><span class="hl-match">AI（人工知能）開発企業アンソロピック向けのデータセンターを大阪府内に建設する方向で協議していることが関係者への取材でわかった。建設費は1兆円規模とみられ、実現すれば国内最大級。アンソロピックにとってはアジア初のデータセンター拠点になりそうだ。</span>`,
+            notes: [
+              "「実現すれば国内最大級。」の体言止めを解禁。残る差分は1字漢語「米（アメリカの）」のみ。"
+            ]
+          },
+          {
+            html: ` <span class="hl-match">関係者によると、NTTデータグループが大阪府の</span><span class="hl-vocab">海沿いエリア</span>に<span class="hl-vocab">電力の受け入れ容量500メガワット</span><span class="hl-match">のデータセンターを建設する方向で調整を進めている。アンソロピックは</span><span class="hl-vocab">昨年の秋</span>、<span class="hl-match">アジア太平洋地域で初めて東京にオフィスを開設。アジア地域で複数のデータセンター建設を目指しており、日本やアジアでの事業をさらに拡大する狙いがあるとみられる。</span><br><span class="text-xs text-slate-500">朝日新聞社</span>`,
+            notes: [
+              "「沿岸部→海沿いエリア」「受電容量→電力の受け入れ容量」「昨秋→昨年の秋」の3語のみをN2語彙で補助。"
+            ]
+          }
+        ],
+        matrix: [
+          `<span class="hl-match">AIデータセンター建設へ NTTと協議</span>`,
+          `<span class="hl-vocab">アメリカの</span><span class="hl-match">AI（人工知能）開発企業…協議していることが関係者への取材でわかった</span>`,
+          `<span class="hl-match">建設費は1兆円規模とみられ、実現すれば国内最大級。…アジア初のデータセンター拠点になりそうだ</span>`,
+          `大阪府の<span class="hl-vocab">海沿いエリア</span>に<span class="hl-vocab">電力の受け入れ容量500メガワット</span>…<span class="hl-match">調整を進めている</span>`,
+          `<span class="hl-vocab">昨年の秋</span>…<span class="hl-match">東京にオフィスを開設。…事業をさらに拡大する狙いがあるとみられる</span>`
+        ]
+      },
+      {
+        id: "n1-1",
+        code: "9. N1前半",
+        sub: "原文100%到達ゴール",
+        reach: 100,
+        stats: "6文 / 273字（原文完全一致）",
+        grammarGuide: "原文の客観レベル（N1前半相当）に到達。報道特有の圧縮表現・体言止めを含め、原文100%そのままに着地。",
+        vocabUnlock: "「米」「沿岸部」「受電容量」「昨秋」をすべて解禁し、全語彙アンロック完了。",
+        sections: [
+          {
+            html: `<span class="hl-match">アンソロピック、大阪にAIデータセンター建設へ NTTと協議</span><br><span class="text-xs text-slate-500"><span class="hl-match">10/13(火) 17:50配信</span></span>`,
+            notes: [
+              "【原文100%到達】見出し・配信表記ともに原文と完全一致。"
+            ]
+          },
+          {
+            html: ` <span class="hl-match">NTTが、米AI（人工知能）開発企業アンソロピック向けのデータセンターを大阪府内に建設する方向で協議していることが関係者への取材でわかった。建設費は1兆円規模とみられ、実現すれば国内最大級。アンソロピックにとってはアジア初のデータセンター拠点になりそうだ。</span>`,
+            notes: [
+              "【原文100%到達】1字漢語「米」を解禁し、第1段落すべてが原文と完全一致。"
+            ]
+          },
+          {
+            html: ` <span class="hl-match">関係者によると、NTTデータグループが大阪府の沿岸部に受電容量500メガワットのデータセンターを建設する方向で調整を進めている。アンソロピックは昨秋、アジア太平洋地域で初めて東京にオフィスを開設。アジア地域で複数のデータセンター建設を目指しており、日本やアジアでの事業をさらに拡大する狙いがあるとみられる。</span><br><span class="text-xs text-slate-500">朝日新聞社</span>`,
+            notes: [
+              "【原文100%到達】「沿岸部」「受電容量」「昨秋」を解禁し、全文が原文と完全一致。"
+            ]
+          }
+        ],
+        matrix: [
+          `<span class="hl-match">AIデータセンター建設へ NTTと協議</span>`,
+          `<span class="hl-match">米AI（人工知能）開発企業…協議していることが関係者への取材でわかった</span>`,
+          `<span class="hl-match">建設費は1兆円規模とみられ、実現すれば国内最大級。…アジア初のデータセンター拠点になりそうだ</span>`,
+          `<span class="hl-match">大阪府の沿岸部に受電容量500メガワット…調整を進めている</span>`,
+          `<span class="hl-match">昨秋…東京にオフィスを開設。…事業をさらに拡大する狙いがあるとみられる</span>`
+        ]
+      },
+      {
+        id: "n1-2",
+        code: "10. N1後半",
+        sub: "上限ロック（原文維持）",
+        reach: 100,
+        stats: "6文 / 273字（上限キャップ原則により原文維持）",
+        grammarGuide: "※原文の客観レベルが【9. N1前半】相当であるため、「原則：原文よりは難しくしないこと（オーバーシュート禁止）」に従い、不要な古語的修辞や難解化を行わず原文をそのまま据え置いています。",
+        vocabUnlock: "上限ロック適用中（原文100%維持）。",
+        sections: [
+          {
+            html: `<span class="hl-match">アンソロピック、大阪にAIデータセンター建設へ NTTと協議</span><br><span class="text-xs text-slate-500"><span class="hl-match">10/13(火) 17:50配信</span></span>`,
+            notes: [
+              "【上限キャップ維持】原文より難しくしない原則に基づき、原文をそのまま維持。"
+            ]
+          },
+          {
+            html: ` <span class="hl-match">NTTが、米AI（人工知能）開発企業アンソロピック向けのデータセンターを大阪府内に建設する方向で協議していることが関係者への取材でわかった。建設費は1兆円規模とみられ、実現すれば国内最大級。アンソロピックにとってはアジア初のデータセンター拠点になりそうだ。</span>`,
+            notes: [
+              "【上限キャップ維持】「巨費を投じ〜」「〜に他ならない」等の過剰な装飾（オーバーシュート）を排し、報道原文の正確性を保持。"
+            ]
+          },
+          {
+            html: ` <span class="hl-match">関係者によると、NTTデータグループが大阪府の沿岸部に受電容量500メガワットのデータセンターを建設する方向で調整を進めている。アンソロピックは昨秋、アジア太平洋地域で初めて東京にオフィスを開設。アジア地域で複数のデータセンター建設を目指しており、日本やアジアでの事業をさらに拡大する狙いがあるとみられる。</span><br><span class="text-xs text-slate-500">朝日新聞社</span>`,
+            notes: [
+              "【上限キャップ維持】原文100%維持。"
+            ]
+          }
+        ],
+        matrix: [
+          `<span class="hl-match">AIデータセンター建設へ NTTと協議</span> <span class="text-[11px] text-emerald-700 font-bold">（上限維持）</span>`,
+          `<span class="hl-match">米AI（人工知能）開発企業…協議していることが関係者への取材でわかった</span>`,
+          `<span class="hl-match">建設費は1兆円規模とみられ、実現すれば国内最大級。…アジア初のデータセンター拠点になりそうだ</span>`,
+          `<span class="hl-match">大阪府の沿岸部に受電容量500メガワット…調整を進めている</span>`,
+          `<span class="hl-match">昨秋…東京にオフィスを開設。…事業をさらに拡大する狙いがあるとみられる</span>`
+        ]
+      }
+    ];
+
+    let currentLevelIndex = 0;
+    let currentMode = 'section';
+
+    function initViewer() {
+      const n = levelsData.length;
+      const selectorBar = document.getElementById('levelSelectorBar');
+      const grid = document.getElementById('levelButtonsGrid');
+
+      // スコープ適応の原則：指定レベル数に応じたUI自動制御
+      if (n === 1) {
+        selectorBar.classList.add('hidden');
+      } else {
+        selectorBar.classList.remove('hidden');
+        grid.innerHTML = levelsData.map((lv, idx) => `
+          <button onclick="selectLevel(${idx})" id="lv-btn-${idx}"
+            class="level-btn flex flex-col items-start justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 text-left transition ${idx === 0 ? 'active' : ''}">
+            <div class="flex items-center justify-between w-full">
+              <span class="font-bold text-xs md:text-sm">${lv.code}</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-white/80 text-slate-700 font-semibold">${lv.reach}%</span>
+            </div>
+            <span class="text-[11px] opacity-85 mt-1 truncate w-full">${lv.sub}</span>
+          </button>
+        `).join('');
+      }
+
+      renderOriginalCard();
+      renderSectionView();
+      renderMatrixView();
+      renderAllView();
+    }
+
+    // 原文カード（レベル切替に関係なく常に同じ原文を表示）
+    function renderOriginalCard() {
+      document.getElementById('originalTextCard').innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-3">
+          <span class="font-bold text-slate-900 text-sm md:text-base">【原文】朝日新聞ニュース記事</span>
+          <span class="text-xs px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold">客観レベル：9. N1前半相当</span>
+        </div>
+        <div class="space-y-2 text-sm md:text-base leading-loose text-slate-800">
+          ${originalData.sections.map(s => `<p>${s.html}</p>`).join('')}
+        </div>
+        <div class="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600">
+          出典：<a href="${originalData.sourceUrl}" target="_blank" rel="noopener" class="text-blue-700 underline break-all">${originalData.sourceLabel}</a>
+        </div>
+      `;
+    }
+
+    function selectLevel(index) {
+      currentLevelIndex = index;
+      levelsData.forEach((_, idx) => {
+        const btn = document.getElementById(`lv-btn-${idx}`);
+        if (btn) btn.classList.toggle('active', idx === index);
+      });
+      renderSectionView();
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      ['section', 'matrix', 'all'].forEach(m => {
+        document.getElementById(`view-${m}`).classList.toggle('hidden', m !== mode);
+        document.getElementById(`btn-mode-${m}`).classList.toggle('active', m === mode);
+      });
+      // レベル選択バーは段落比較モード時のみ強調表示
+      document.getElementById('levelSelectorBar').classList.toggle('hidden', mode !== 'section' || levelsData.length === 1);
+    }
+
+    function renderSectionView() {
+      const lv = levelsData[currentLevelIndex];
+      const summaryEl = document.getElementById('levelSummaryCard');
+      const containerEl = document.getElementById('sectionCardsContainer');
+
+      summaryEl.innerHTML = `
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <span class="px-3 py-1 rounded-lg bg-blue-600 text-white font-bold text-sm">${lv.code}</span>
+              <h3 class="text-base md:text-lg font-bold text-slate-900">${lv.sub}</h3>
+              <span class="text-xs text-slate-500 font-medium">（${lv.stats}）</span>
+            </div>
+          </div>
+          <div class="w-full md:w-64">
+            <div class="flex justify-between text-xs font-bold mb-1">
+              <span class="text-slate-600">原文到達度（アンロック率）</span>
+              <span class="text-blue-700">${lv.reach}%</span>
+            </div>
+            <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-300" style="width: ${lv.reach}%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-xs md:text-sm">
+          <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <span class="font-bold text-slate-700 block mb-1">📐 文法・文構造のコントロール指針</span>
+            <p class="text-slate-600 leading-relaxed">${lv.grammarGuide}</p>
+          </div>
+          <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <span class="font-bold text-slate-700 block mb-1">🔑 語彙アンロック状況</span>
+            <p class="text-slate-600 leading-relaxed">${lv.vocabUnlock}</p>
+          </div>
+        </div>
+      `;
+
+      containerEl.innerHTML = originalData.sections.map((origSec, sIdx) => {
+        const targetSec = lv.sections[sIdx];
+        return `
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="bg-slate-800 text-white px-4 py-2 text-xs font-bold flex items-center justify-between">
+              <span>${origSec.label}</span>
+              <span class="text-slate-300">原文 vs ${lv.code}</span>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+              <!-- 左カラム（5/12）：原文 -->
+              <div class="lg:col-span-5 p-4 bg-slate-50/60">
+                <div class="text-xs font-bold text-slate-500 mb-2">【原文】（9. N1前半相当）</div>
+                <div class="text-sm md:text-base leading-loose text-slate-800">${origSec.html}</div>
+              </div>
+              <!-- 中カラム（4/12）：選択レベル変換文 -->
+              <div class="lg:col-span-4 p-4 bg-white">
+                <div class="text-xs font-bold text-blue-700 mb-2">【${lv.code} 変換テキスト】</div>
+                <div class="text-sm md:text-base leading-loose text-slate-900">${targetSec.html}</div>
+              </div>
+              <!-- 右カラム（3/12）：変更・到達ポイント解説 -->
+              <div class="lg:col-span-3 p-4 bg-amber-50/40">
+                <div class="text-xs font-bold text-slate-700 mb-2">🔍 原文との差分・到達ポイント</div>
+                <ul class="space-y-1.5 text-xs text-slate-700 list-disc list-inside leading-relaxed">
+                  ${targetSec.notes.map(n => `<li>${n}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderMatrixView() {
+      const tbody = document.getElementById('matrixTableBody');
+      const origRow = `
+        <tr class="bg-slate-100 font-medium">
+          <td class="p-3 border-r border-slate-300 font-bold text-slate-900">
+            【原文】<br><span class="text-[11px] text-emerald-700">9. N1前半相当</span>
+          </td>
+          ${originalData.matrix.map((cell, i) => `
+            <td class="p-3 ${i < 4 ? 'border-r border-slate-300' : ''} leading-relaxed">${cell}</td>
+          `).join('')}
+        </tr>
+      `;
+
+      const levelRows = levelsData.map(lv => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="p-3 border-r border-slate-200 font-bold text-slate-800 bg-slate-50/80">
+            ${lv.code}
+            <div class="text-[10px] font-normal text-slate-500">${lv.sub}（${lv.reach}%）</div>
+          </td>
+          ${lv.matrix.map((cell, i) => `
+            <td class="p-3 ${i < 4 ? 'border-r border-slate-200' : ''} leading-relaxed">${cell}</td>
+          `).join('')}
+        </tr>
+      `).join('');
+
+      tbody.innerHTML = origRow + levelRows;
+    }
+
+    function renderAllView() {
+      const container = document.getElementById('allLevelsContainer');
+
+      const origCard = `
+        <div class="bg-slate-900 text-white rounded-xl p-5 shadow-sm md:col-span-2">
+          <div class="flex items-center justify-between border-b border-slate-700 pb-2.5 mb-3">
+            <span class="font-bold text-sm md:text-base">【原文】朝日新聞ニュース記事（客観レベル：9. N1前半相当）</span>
+            <span class="text-xs px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full">100% 基準テキスト</span>
+          </div>
+          <div class="space-y-2 text-sm md:text-base leading-relaxed text-slate-100">
+            ${originalData.sections.map(s => `<p>${s.plain.replace(/\n/g, '<br>')}</p>`).join('')}
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-700 text-xs text-slate-300">
+            出典：<a href="${originalData.sourceUrl}" target="_blank" rel="noopener" class="text-emerald-300 underline break-all">${originalData.sourceLabel}</a>
+          </div>
+        </div>
+      `;
+
+      const cards = levelsData.map(lv => `
+        <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3">
+              <div>
+                <span class="font-bold text-blue-700 text-sm md:text-base">${lv.code}</span>
+                <span class="text-xs text-slate-500 ml-1.5">${lv.sub}</span>
+              </div>
+              <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">到達度 ${lv.reach}%</span>
+            </div>
+            <div class="space-y-2.5 text-sm leading-loose text-slate-800">
+              ${lv.sections.map(s => `<p>${s.html}</p>`).join('')}
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
+            ${lv.grammarGuide}
+          </div>
+        </div>
+      `).join('');
+
+      container.innerHTML = origCard + cards;
+    }
+
+    window.addEventListener('DOMContentLoaded', initViewer);
+  </script>
+</body>
+</html>
